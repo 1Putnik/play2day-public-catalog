@@ -11,7 +11,7 @@ on:
           - all
           - select-and-llv
   schedule:
-    - cron: '23 */8 * * *'
+    - cron: '37 2,10,18 * * *'
 permissions:
   contents: write
 concurrency:
@@ -54,6 +54,9 @@ jobs:
           set -e
           case "$rc" in 0|2) ;; *) exit "$rc";; esac
           echo "result=$rc" >> "$GITHUB_OUTPUT"
+      - name: Keep the last correct catalog unless the new one passes the client checks
+        working-directory: published
+        run: python .github/scripts/check_publication.py --dir . --baseline-rev HEAD --report "$RUNNER_TEMP/publication-check.json"
       - name: Commit recoverable private state before publishing the public files
         if: steps.collect.outputs.result != ''
         working-directory: collector
