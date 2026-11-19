@@ -2,6 +2,14 @@ name: Refresh Play2Day public catalog
 # Install only in the dedicated public catalog repository when cloud scheduling is approved.
 on:
   workflow_dispatch:
+    inputs:
+      coverage:
+        description: "Organizers to refresh"
+        type: choice
+        default: all
+        options:
+          - all
+          - select-and-llv
   schedule:
     - cron: '23 */8 * * *'
 permissions:
@@ -34,10 +42,14 @@ jobs:
         run: python -m pip install --disable-pip-version-check -q -r collector/requirements.txt
       - name: Check organizers and prepare publications
         id: collect
+        env:
+          COVERAGE: ${{ inputs.coverage }}
         shell: bash
         run: |
           set +e
-          python collector/run_sync.py --public-dir published --report "$RUNNER_TEMP/source-health.json" > "$RUNNER_TEMP/collector.log" 2>&1
+          sources=()
+          if [[ "$COVERAGE" == "select-and-llv" ]]; then sources=(--source select --source llv); fi
+          python collector/run_sync.py "${sources[@]}" --public-dir published --report "$RUNNER_TEMP/source-health.json" > "$RUNNER_TEMP/collector.log" 2>&1
           rc=$?
           set -e
           case "$rc" in 0|2) ;; *) exit "$rc";; esac
